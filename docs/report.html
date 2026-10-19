@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galaxy Watch 4 — Debloat Report</title>
+<style>
+  :root{
+    --bg:#070b14;
+    --card:rgba(255,255,255,.035);
+    --card2:rgba(255,255,255,.055);
+    --border:rgba(255,255,255,.09);
+    --text:#e9eefb;
+    --muted:#8c99b2;
+    --dim:#5d6a83;
+    --accent:#4d8dff;
+    --accent2:#22d3a7;
+    --danger:#ff6b6b;
+    --warn:#f5a524;
+    --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg)}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",Roboto,sans-serif;
+    color:var(--text);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(1100px 560px at 15% -12%, rgba(77,141,255,.20), transparent 62%),
+      radial-gradient(900px 520px at 92% 4%, rgba(34,211,167,.13), transparent 58%),
+      radial-gradient(760px 420px at 60% 108%, rgba(120,90,255,.10), transparent 60%);
+    background-attachment:fixed;
+    padding:44px 24px 64px;
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+
+  /* ---------- header ---------- */
+  .eyebrow{
+    display:flex;align-items:center;gap:10px;
+    font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:700;margin-bottom:18px;
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--accent2);box-shadow:0 0 12px var(--accent2)}
+  h1{
+    font-size:clamp(38px,6vw,60px);line-height:1.04;letter-spacing:-.035em;
+    font-weight:800;margin-bottom:12px;
+  }
+  h1 .grad{
+    background:linear-gradient(100deg,#fff 10%,#9fc2ff 55%,#22d3a7 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .sub{color:var(--muted);font-size:15px}
+  .sub .sep{color:var(--dim);margin:0 8px}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+  .badge{
+    font-size:11.5px;font-weight:600;letter-spacing:.02em;
+    padding:5px 11px;border-radius:999px;
+    border:1px solid var(--border);background:var(--card);color:var(--muted);
+  }
+  .badge.good{color:var(--accent2);border-color:rgba(34,211,167,.28);background:rgba(34,211,167,.08)}
+
+  /* ---------- hero stats ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:38px 0 16px}
+  .stat{
+    background:linear-gradient(180deg,var(--card2),var(--card));
+    border:1px solid var(--border);border-radius:18px;padding:20px 18px;
+    position:relative;overflow:hidden;
+  }
+  .stat::after{
+    content:"";position:absolute;inset:0 0 auto 0;height:2px;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.5;
+  }
+  .stat .k{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:10px}
+  .stat .v{font-family:var(--mono);font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1}
+  .stat .v small{font-size:15px;font-weight:600;color:var(--muted);margin-left:3px}
+  .stat .d{font-size:12px;color:var(--muted);margin-top:9px}
+  .v.blue{color:#8fb8ff}.v.green{color:var(--accent2)}.v.amber{color:var(--warn)}.v.red{color:var(--danger)}
+
+  /* ---------- package bar ---------- */
+  .panel{
+    background:linear-gradient(180deg,var(--card2),var(--card));
+    border:1px solid var(--border);border-radius:20px;padding:26px 26px 24px;margin-top:16px;
+  }
+  .panel h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:22px}
+  .barrow{margin-bottom:20px}
+  .barrow:last-child{margin-bottom:0}
+  .barlabel{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;font-size:13px}
+  .barlabel .name{color:var(--muted);font-weight:600}
+  .barlabel .num{font-family:var(--mono);font-weight:700;font-size:15px}
+  .track{height:13px;border-radius:999px;background:rgba(255,255,255,.055);overflow:hidden}
+  .fill{height:100%;border-radius:999px}
+  .fill.before{width:100%;background:linear-gradient(90deg,#ff6b6b,#ff9d4d)}
+  .fill.after{width:65.6%;background:linear-gradient(90deg,#22d3a7,#4d8dff)}
+  .delta{font-family:var(--mono);font-size:12px;color:var(--accent2);font-weight:700}
+
+  /* ---------- table ---------- */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  thead th{
+    text-align:left;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--dim);font-weight:700;padding:0 0 12px;border-bottom:1px solid var(--border);
+  }
+  tbody td{padding:13px 0;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  td.metric{color:var(--text);font-weight:600;font-size:13.5px}
+  td.before,td.after{font-family:var(--mono);font-size:13px;text-align:right;padding-right:26px;white-space:nowrap}
+  td.before{color:var(--muted)}
+  td.after{color:#fff;font-weight:700}
+  td.delta{text-align:right;white-space:nowrap}
+  .pill{
+    display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:700;
+    padding:3px 9px;border-radius:999px;
+    color:var(--accent2);background:rgba(34,211,167,.10);border:1px solid rgba(34,211,167,.25);
+  }
+  .pill.warn{color:var(--warn);background:rgba(245,165,36,.10);border-color:rgba(245,165,36,.25)}
+  .pill.neutral{color:var(--muted);background:rgba(255,255,255,.05);border-color:var(--border)}
+  .metric .sub2{color:var(--dim);font-weight:500;font-size:11.5px;font-family:var(--mono)}
+  tr.total td{border-top:1px solid var(--border);border-bottom:none;padding-top:16px}
+  tr.total td.metric{font-size:14.5px;letter-spacing:-.01em}
+  .footnote{
+    margin-top:18px;padding-top:15px;border-top:1px solid rgba(255,255,255,.05);
+    font-size:11.5px;color:var(--dim);line-height:1.7;
+  }
+  .footnote .mono{font-family:var(--mono);color:var(--muted)}
+
+  /* ---------- removed grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+  .cat{
+    background:rgba(255,255,255,.028);border:1px solid var(--border);
+    border-radius:14px;padding:15px 16px;
+  }
+  .cat .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:8px}
+  .cat .cname{font-size:13px;font-weight:700;letter-spacing:-.01em}
+  .cat .cnum{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent)}
+  .cat .eg{font-family:var(--mono);font-size:10.5px;color:var(--dim);line-height:1.65;word-break:break-word}
+
+  /* ---------- battery ---------- */
+  .battery{display:grid;grid-template-columns:1.15fr 1fr;gap:26px;align-items:center}
+  .gauge-wrap{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+  .gauge-val{font-family:var(--mono);font-size:46px;font-weight:800;letter-spacing:-.04em;color:var(--accent2);line-height:1}
+  .gauge-val small{font-size:18px;color:var(--muted);font-weight:600}
+  .gauge-track{height:16px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;position:relative}
+  .gauge-fill{height:100%;width:62%;border-radius:999px;background:linear-gradient(90deg,#22d3a7,#7ee787,#4d8dff)}
+  .gauge-marks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:7px}
+  .battery ul{list-style:none;font-size:12.5px;color:var(--muted)}
+  .battery li{padding:6px 0 6px 18px;position:relative}
+  .battery li::before{content:"▸";position:absolute;left:0;color:var(--accent2);font-size:11px}
+
+  /* ---------- caveat ---------- */
+  .caveat{
+    margin-top:22px;border:1px solid rgba(245,165,36,.22);background:rgba(245,165,36,.055);
+    border-radius:14px;padding:15px 17px;font-size:12px;color:#d8c19a;line-height:1.65;
+  }
+  .caveat b{color:var(--warn)}
+
+  /* ---------- footer ---------- */
+  footer{
+    margin-top:30px;padding-top:22px;border-top:1px solid var(--border);
+    display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;
+    font-size:11.5px;color:var(--dim);
+  }
+  footer .mono{font-family:var(--mono)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+  .brand .mark{
+    width:22px;height:22px;border-radius:7px;
+    background:linear-gradient(135deg,#4d8dff,#22d3a7);
+    display:grid;place-items:center;font-size:11px;color:#04101f;font-weight:900;
+  }
+
+  @media(max-width:860px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .battery{grid-template-columns:1fr;gap:18px}
+  }
+  @media(max-width:540px){
+    body{padding:28px 16px 44px}
+    .stats{grid-template-columns:1fr 1fr;gap:10px}
+    .grid{grid-template-columns:1fr}
+    td.before,td.after{padding-right:12px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow"><span class="dot"></span>Debloat Report · October 2026</div>
+
+  <h1>Galaxy Watch 4<br><span class="grad">before → after</span></h1>
+  <p class="sub">
+    SM-R870 <span class="sep">·</span> Wear OS <span class="sep">·</span> Android 16
+    <span class="sep">·</span> <span class="mono">R870XXS2JZG3</span>
+  </p>
+
+  <div class="badges">
+    <span class="badge good">No root required</span>
+    <span class="badge good">100% reversible</span>
+    <span class="badge">Wireless ADB</span>
+    <span class="badge">0 failures · 0 crashes</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="k">Packages removed</div>
+      <div class="v blue">83</div>
+      <div class="d">241 → 158 installed</div>
+    </div>
+    <div class="stat">
+      <div class="k">Storage of apps cut</div>
+      <div class="v green">34<small>%</small></div>
+      <div class="d">fewer packages on device</div>
+    </div>
+    <div class="stat">
+      <div class="k">RAM freed</div>
+      <div class="v green">121<small>MB</small></div>
+      <div class="d">Play Store processes gone</div>
+    </div>
+    <div class="stat">
+      <div class="k">Swap-reclaim CPU</div>
+      <div class="v green">−88<small>%</small></div>
+      <div class="d">14% → 1.7% (kswapd0)</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>What the bloat was costing — measured before removal</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Bloat process</th>
+          <th style="text-align:right;padding-right:26px">RAM</th>
+          <th style="text-align:right;padding-right:26px">CPU</th>
+          <th style="text-align:right">Outcome</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="metric">Google Play Store <span class="sub2">2 processes</span></td>
+          <td class="before">121.5 MB</td>
+          <td class="before">21.9%</td>
+          <td class="delta"><span class="pill warn">disabled</span></td>
+        </tr>
+        <tr>
+          <td class="metric">Google Assistant</td>
+          <td class="before">44.1 MB</td>
+          <td class="before">—</td>
+          <td class="delta"><span class="pill">removed</span></td>
+        </tr>
+        <tr>
+          <td class="metric">Samsung Weather</td>
+          <td class="before">37.1 MB</td>
+          <td class="before">—</td>
+          <td class="delta"><span class="pill">removed</span></td>
+        </tr>
+        <tr>
+          <td class="metric">Music transfer <span class="sub2">wear.musictransfer</span></td>
+          <td class="before">30.9 MB</td>
+          <td class="before">—</td>
+          <td class="delta"><span class="pill">removed</span></td>
+        </tr>
+        <tr>
+          <td class="metric">Samsung Device Health <span class="sub2">sdhms</span></td>
+          <td class="before">29.3 MB</td>
+          <td class="before">6.5%</td>
+          <td class="delta"><span class="pill">removed</span></td>
+        </tr>
+        <tr>
+          <td class="metric">Chromecast remote</td>
+          <td class="before">25.5 MB</td>
+          <td class="before">—</td>
+          <td class="delta"><span class="pill">removed</span></td>
+        </tr>
+        <tr>
+          <td class="metric">Voice Recorder</td>
+          <td class="before">24.9 MB</td>
+          <td class="before">—</td>
+          <td class="delta"><span class="pill">removed</span></td>
+        </tr>
+        <tr>
+          <td class="metric">Samsung Pay</td>
+          <td class="before">24.6 MB</td>
+          <td class="before">—</td>
+          <td class="delta"><span class="pill">removed</span></td>
+        </tr>
+        <tr>
+          <td class="metric">Calculator</td>
+          <td class="before">22.4 MB</td>
+          <td class="before">—</td>
+          <td class="delta"><span class="pill">removed</span></td>
+        </tr>
+        <tr>
+          <td class="metric">Spatial Number watchface</td>
+          <td class="before">—</td>
+          <td class="before">9.2%</td>
+          <td class="delta"><span class="pill">removed</span></td>
+        </tr>
+        <tr class="total">
+          <td class="metric">Total bloat removed</td>
+          <td class="after">360.3 MB</td>
+          <td class="after">37.6%</td>
+          <td class="delta"><span class="pill">of a 1.38 GB watch</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="footnote">
+      RAM is the resident set size of each live process at the pre-debloat baseline
+      (<span class="mono">/proc/&lt;pid&gt;/statm</span>). CPU is each process's share of total
+      CPU across the <span class="mono">dumpsys cpuinfo</span> sampling window.
+      The Play Store figure spans two processes and was disabled rather than uninstalled,
+      so it can be re-enabled at any time.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Package footprint</h2>
+    <div class="barrow">
+      <div class="barlabel"><span class="name">Before</span><span class="num" style="color:#ff9d4d">241</span></div>
+      <div class="track"><div class="fill before"></div></div>
+    </div>
+    <div class="barrow">
+      <div class="barlabel"><span class="name">After</span><span class="num" style="color:var(--accent2)">158</span></div>
+      <div class="track"><div class="fill after"></div></div>
+    </div>
+    <div style="margin-top:16px;font-size:12px;color:var(--dim)">
+      <span class="delta">−83 packages</span> &nbsp;·&nbsp; uninstalled for user 0 only — the APKs stay on the read-only system partition, so every removal is one command away from being undone.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Measured impact</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Metric</th><th style="text-align:right;padding-right:26px">Before</th><th style="text-align:right;padding-right:26px">After</th><th style="text-align:right">Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="metric">Installed packages</td><td class="before">241</td><td class="after">158</td><td class="delta"><span class="pill">−34%</span></td></tr>
+        <tr><td class="metric">Play Store CPU</td><td class="before">~22%</td><td class="after">0%</td><td class="delta"><span class="pill">−22 pts</span></td></tr>
+        <tr><td class="metric">Play Store RAM</td><td class="before">121.5 MB</td><td class="after">0</td><td class="delta"><span class="pill">−121.5 MB</span></td></tr>
+        <tr><td class="metric">kswapd0 (swap reclaim)</td><td class="before">14%</td><td class="after">1.7%</td><td class="delta"><span class="pill">−88%</span></td></tr>
+        <tr><td class="metric">system_server CPU</td><td class="before">59%</td><td class="after">28%</td><td class="delta"><span class="pill">−53%</span></td></tr>
+        <tr><td class="metric">Unused watchface process</td><td class="before">9.2%</td><td class="after">0</td><td class="delta"><span class="pill">−9.2 pts</span></td></tr>
+        <tr><td class="metric">Samsung Device Health</td><td class="before">6.5%</td><td class="after">0</td><td class="delta"><span class="pill">−6.5 pts</span></td></tr>
+        <tr><td class="metric">Watchfaces installed</td><td class="before">30</td><td class="after">3</td><td class="delta"><span class="pill">−90%</span></td></tr>
+        <tr><td class="metric">UI animation scales</td><td class="before">1.0</td><td class="after">0.5</td><td class="delta"><span class="pill">2× snappier</span></td></tr>
+        <tr><td class="metric">Crash logs</td><td class="before">—</td><td class="after">0</td><td class="delta"><span class="pill neutral">clean</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>What came off</h2>
+    <div class="grid">
+      <div class="cat">
+        <div class="top"><span class="cname">Watchfaces &amp; fonts</span><span class="cnum">37</span></div>
+        <div class="eg">29 faces · Global Goals (5) · 3 free fonts</div>
+      </div>
+      <div class="cat">
+        <div class="top"><span class="cname">Samsung apps</span><span class="cnum">18</span></div>
+        <div class="eg">Pay · Music · Buds · SmartThings · Galaxy Store · Weather · Calculator · Voice Recorder · Find</div>
+      </div>
+      <div class="cat">
+        <div class="top"><span class="cname">Telemetry &amp; factory</span><span class="cnum">8</span></div>
+        <div class="eg">dqagent · diagmonagent · sdhms · facatfunction · hwmoduletest · servicemodeapp · wlantest</div>
+      </div>
+      <div class="cat">
+        <div class="top"><span class="cname">Demo &amp; test residue</span><span class="cnum">6</span></div>
+        <div class="eg">CTS stubs · partner setup · ad services · MDM provisioning · setup wizard</div>
+      </div>
+      <div class="cat">
+        <div class="top"><span class="cname">Google extras</span><span class="cnum">6</span></div>
+        <div class="eg">Assistant · Chromecast · GoogleCamera · Outlook · SoundCloud · tethering</div>
+      </div>
+      <div class="cat">
+        <div class="top"><span class="cname">Bixby</span><span class="cnum">3</span></div>
+        <div class="eg">bixby.agent · bixby.wakeup · intellivoiceservice</div>
+      </div>
+      <div class="cat">
+        <div class="top"><span class="cname">LTE / IMS stack</span><span class="cnum">3</span></div>
+        <div class="eg">imsservice · imssettings · cellbroadcast — no LTE radio on SM-R870</div>
+      </div>
+      <div class="cat">
+        <div class="top"><span class="cname">Knox / enterprise</span><span class="cnum">1</span></div>
+        <div class="eg">sds.emm.cloud.knox.samsung</div>
+      </div>
+      <div class="cat">
+        <div class="top"><span class="cname">Android leftovers</span><span class="cnum">2</span></div>
+        <div class="eg">tethering stack · user dictionary</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Potential battery gain</h2>
+    <div class="battery">
+      <div>
+        <div class="gauge-wrap">
+          <span class="gauge-val">+15–30<small>%</small></span>
+        </div>
+        <div class="gauge-track"><div class="gauge-fill"></div></div>
+        <div class="gauge-marks"><span>0%</span><span>est. runtime gain</span><span>+40%</span></div>
+      </div>
+      <ul>
+        <li>Always-listening Bixby wake word removed</li>
+        <li>29 watchfaces no longer holding processes warm</li>
+        <li>Play Store background jobs + wake locks eliminated</li>
+        <li>Samsung telemetry agents gone</li>
+        <li>Animation work halved</li>
+      </ul>
+    </div>
+    <div class="caveat">
+      <b>Honest caveat:</b> the CPU, RAM and package figures are <b>measured</b> on the device via
+      <span class="mono">dumpsys cpuinfo</span>, <span class="mono">/proc/meminfo</span> and
+      <span class="mono">pm list packages</span>. The battery figure is an <b>estimate</b> based on the
+      removed background services — it is not a controlled discharge-cycle measurement, and real-world
+      gain depends on usage. CPU samples were taken mid-session and fluctuate.
+    </div>
+  </div>
+
+  <footer>
+    <div class="brand"><span class="mark">W</span> Galaxy Watch 4 · debloat</div>
+    <div class="mono">241 → 158 packages · 6 passes · wireless ADB · no root</div>
+  </footer>
+
+</div>
+</body>
+</html>
