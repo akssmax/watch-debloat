@@ -60,7 +60,7 @@ down **88%**, zero crashes.
 ## Quick start
 
 ```bash
-git clone https://github.com/<you>/watch-debloat.git
+git clone https://github.com/akssmax/watch-debloat.git
 cd watch-debloat
 ./watch-debloat.sh
 ```
