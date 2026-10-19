@@ -13,6 +13,10 @@
 
 </div>
 
+<div align="center">
+<img src="docs/report.png" alt="Galaxy Watch 4 debloat report - before/after" width="820">
+</div>
+
 ---
 
 ## Why
