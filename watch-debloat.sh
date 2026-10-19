@@ -57,7 +57,11 @@ ensure_adb() {
   exit 1
 }
 
-adb_() { adb -s "$DEVICE" "$@" 2>/dev/null; }
+adb_() { adb -s "$DEVICE" "$@" < /dev/null 2>/dev/null; }
+
+# adb inherits stdin and will happily swallow the keystrokes meant for the
+# interactive menus. Every adb invocation therefore gets </dev/null.
+adb_plain() { adb "$@" < /dev/null 2>/dev/null; }
 
 device_ready() {
   [ -n "${DEVICE:-}" ] || return 1
@@ -189,13 +193,17 @@ KEY_TIMEOUT="1"
 [ "${BASH_VERSINFO[0]:-0}" -ge 4 ] && KEY_TIMEOUT="0.05"
 
 read_key() {
-  local k k2
-  IFS= read -rsn1 k
-  if [ "$k" = $'\033' ]; then
+  # NOTE: must NOT be called as `key=$(read_key)`.
+  # A command substitution runs in a subshell, and bash discards the bytes it
+  # had buffered from the pipe when that subshell exits - which silently drops
+  # every keystroke after the first. We therefore read into a global.
+  KEY=""
+  local k2
+  IFS= read -rsn1 KEY
+  if [ "$KEY" = $'\033' ]; then
     IFS= read -rsn2 -t "$KEY_TIMEOUT" k2
-    k="$k${k2:-}"
+    KEY="$KEY${k2:-}"
   fi
-  printf '%s' "$k"
 }
 
 tui_multiselect() {  # sets global SELECTED (space separated indexes)
@@ -229,7 +237,9 @@ tui_multiselect() {  # sets global SELECTED (space separated indexes)
 
     printf '\n  %s%d package(s) selected%s\n' "$c_bold" "$total" "$c_reset"
 
-    key=$(read_key)
+    key=""
+    read_key
+    key="$KEY"
     case "$key" in
       $'\033[A') cur=$((cur - 1)); [ $cur -lt 0 ] && cur=$((n - 1)) ;;
       $'\033[B') cur=$((cur + 1)); [ $cur -ge $n ] && cur=0 ;;
@@ -293,7 +303,7 @@ connect_wizard() {
     [ -n "$ip" ] && [ -n "$pairport" ] && [ -n "$paircode" ] || die "Missing input."
     say ""
     say "  Pairing…"
-    printf '%s\n' "$paircode" | adb pair "${ip}:${pairport}" 2>&1 | sed 's/^/    /'
+    printf '%s\n' "$paircode" | adb pair "${ip}:${pairport}" < /dev/null 2>&1 | sed 's/^/    /'
     say ""
     say "  ${c_dim}If you saw 'Successfully paired', you're good.${c_reset}"
   else
@@ -311,7 +321,7 @@ connect_wizard() {
   DEVICE="${ip}:${cport}"
   say ""
   say "  Connecting to ${c_bold}${DEVICE}${c_reset}…"
-  adb connect "$DEVICE" 2>&1 | sed 's/^/    /'
+  adb connect "$DEVICE" < /dev/null 2>&1 | sed 's/^/    /'
   sleep 1
 
   if device_ready; then
@@ -331,7 +341,7 @@ connect_wizard() {
 
 pick_device() {
   local list count
-  list=$(adb devices | awk 'NR>1 && $2=="device"{print $1}')
+  list=$(adb devices < /dev/null | awk 'NR>1 && $2=="device"{print $1}')
   count=$(printf '%s\n' "$list" | grep -c . )
   if [ "$count" -eq 1 ]; then DEVICE="$list"; return 0; fi
   if [ "$count" -eq 0 ]; then
@@ -486,7 +496,7 @@ fi
 
 # ---- connection
 if [ -z "$RESTORE_LOG" ]; then
-  if [ -z "$DEVICE" ] || [ "$(adb -s "$DEVICE" get-state 2>/dev/null)" != "device" ]; then
+  if [ -z "$DEVICE" ] || [ "$(adb -s "$DEVICE" get-state < /dev/null 2>/dev/null)" != "device" ]; then
     pick_device
   fi
 fi
